@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مساعد التقاضي — Litigation Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --paper:#F6F8F5; --surface:#FFFFFF; --surface-2:#EFF3EE;
+    --ink:#171C18; --ink-2:#4E5A52; --ink-3:#7E8A83;
+    --rule:#DCE3DB; --rule-2:#C6D0C4;
+    --seal:#2F6B4F; --seal-soft:#E2EDE5;
+    --risk:#A33A2C; --risk-soft:#F6E4E0;
+    --warn:#856012; --warn-soft:#F5EBD4;
+    --f-ar:'Amiri','Segoe UI',Tahoma,serif;
+    --f-body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+    --f-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:var(--f-ar), var(--f-body);
+    font-size:16px; line-height:1.7; min-height:100vh;
+  }
+  h1,h2,h3{ margin:0; font-weight:700; }
+  p{ margin:0; }
+  a{ color:var(--seal); }
+  button, input, select, textarea{ font-family:inherit; font-size:inherit; }
+  code, .mono{ font-family:var(--f-mono); direction:ltr; unicode-bidi:isolate; }
+
+  .center-screen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .card{
+    background:var(--surface); border:1px solid var(--rule); border-radius:8px;
+    padding:28px; box-shadow:0 1px 2px rgba(23,28,24,.05), 0 8px 24px -16px rgba(23,28,24,.28);
+  }
+  .auth-card{ width:100%; max-width:400px; display:flex; flex-direction:column; gap:16px; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-size:13px; color:var(--ink-2); }
+  .field input, .field select, .field textarea{
+    padding:9px 12px; border:1px solid var(--rule-2); border-radius:5px;
+    background:var(--surface); color:var(--ink);
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:2px solid var(--seal); outline-offset:1px; }
+  .btn{
+    padding:10px 18px; border-radius:5px; border:1px solid var(--seal);
+    background:var(--seal); color:#fff; font-weight:600; cursor:pointer;
+  }
+  .btn:disabled{ opacity:.55; cursor:default; }
+  .btn.secondary{ background:var(--surface); color:var(--seal); }
+  .btn.danger{ background:var(--risk); border-color:var(--risk); }
+  .btn.small{ padding:6px 12px; font-size:13px; }
+  .alert{ padding:10px 14px; border-radius:5px; font-size:14px; }
+  .alert.risk{ background:var(--risk-soft); color:var(--risk); }
+  .alert.warn{ background:var(--warn-soft); color:var(--warn); }
+  .alert.seal{ background:var(--seal-soft); color:var(--seal); }
+
+  .shell{ display:flex; min-height:100vh; }
+  nav.sidebar{
+    width:220px; flex:none; background:var(--surface); border-left:1px solid var(--rule);
+    padding:22px 16px; display:flex; flex-direction:column; gap:4px;
+  }
+  nav.sidebar .brand{ font-size:18px; margin-bottom:22px; }
+  nav.sidebar .brand .sub{ display:block; font-family:var(--f-mono); font-size:11px; color:var(--ink-3); direction:ltr; text-align:right; margin-top:2px; }
+  nav.sidebar a{
+    display:block; padding:9px 10px; border-radius:5px; color:var(--ink-2);
+    text-decoration:none; font-size:14.5px;
+  }
+  nav.sidebar a:hover{ background:var(--surface-2); }
+  nav.sidebar a.active{ background:var(--seal-soft); color:var(--seal); font-weight:600; }
+  nav.sidebar .spacer{ flex:1; }
+  main.content{ flex:1; padding:32px 40px; max-width:920px; }
+
+  table{ border-collapse:collapse; width:100%; font-size:14px; }
+  th,td{ text-align:right; padding:9px 12px; border-bottom:1px solid var(--rule); vertical-align:top; }
+  thead th{ font-size:12px; color:var(--ink-3); font-weight:600; background:var(--surface-2); }
+  tbody tr:hover{ background:var(--surface-2); cursor:pointer; }
+
+  .badge{ display:inline-block; padding:2px 9px; border-radius:99px; font-size:11.5px; font-weight:600; }
+  .badge.active{ background:var(--seal-soft); color:var(--seal); }
+  .badge.closed{ background:var(--surface-2); color:var(--ink-3); }
+  .badge.pending{ background:var(--warn-soft); color:var(--warn); }
+
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .stack{ display:flex; flex-direction:column; gap:14px; }
+  .row-between{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .section-title{ font-size:20px; margin-bottom:14px; }
+  .hint{ font-size:12.5px; color:var(--ink-3); }
+  .empty{ color:var(--ink-3); font-size:14px; padding:14px 0; }
+
+  dialog{ border:none; border-radius:8px; padding:0; max-width:520px; width:92vw; }
+  dialog::backdrop{ background:rgba(23,28,24,.45); }
+  .dialog-body{ padding:24px; display:flex; flex-direction:column; gap:16px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ---------------------------------------------------------------------
+// Litigation Agent — Phase 1 scaffold
+//
+// This is the single-file frontend shell described in the build plan
+// (section 04, "Architecture"): same pattern as the staff portal
+// (index.html in this same repo), mirrored for right-to-left. It is
+// intentionally thin — it wires auth, the matter list, and manual matter
+// intake against real tables/RLS/Edge Functions already deployed. It does
+// NOT implement OCR-based intake, drafting, or research (Tier B, and the
+// scan-based half of Tier A) — those need the legal-ingest/legal-extract
+// pipeline and the model-calling Edge Functions this scaffold leaves for
+// later phases. Every screen that depends on unbuilt pipeline says so
+// rather than pretending to work.
+//
+// Deadline math (fn_compute_deadline) and the deadline_rules table exist
+// in the database already, but deadline_rules has zero rows until a
+// lawyer authors and signs them (Phase 0 gate, per the plan) — the
+// Deadlines panel below reflects that honestly instead of hiding it.
+// ---------------------------------------------------------------------
+
+const SUPABASE_URL = 'https://xjxzkjyotbumxtddkepd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqeHpranlvdGJ1bXh0ZGRrZXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczOTI3MTUsImV4cCI6MjEwMjk2ODcxNX0.4pjCk64bUWROZCR3xD1r6CN1H95daqwTYzL4huk_1Ac';
+const FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const STAGE_LABELS = {
+  first_instance: 'ابتدائي', appeal: 'استئناف', cassation: 'نقض', execution: 'تنفيذ',
+};
+const PARTY_ROLE_LABELS = {
+  plaintiff: 'مدعي', defendant: 'مدعى عليه', third_party: 'خصم متدخل',
+  counsel_own_side: 'محامي الموكل', counsel_opposing: 'محامي الخصم',
+};
+
+const app = document.getElementById('app');
+let state = { session: null, route: '#/matters' };
+
+// ---------- small helpers ----------
+function h(tag, attrs = {}, children = []) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
+    else if (v !== null && v !== undefined) el.setAttribute(k, v);
+  }
+  for (const c of [].concat(children)) {
+    if (c === null || c === undefined) continue;
+    el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  }
+  return el;
+}
+function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+function fmtDate(d) { return d ? new Date(d).toLocaleDateString('ar-EG') : '—'; }
+
+async function callFunction(slug, body) {
+  const { data: { session } } = await sb.auth.getSession();
+  const res = await fetch(`${FUNCTIONS_URL}/${slug}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session?.access_token ?? ''}`,
+    },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `${slug} failed (${res.status})`);
+  return json;
+}
+
+// ---------- auth screens ----------
+function renderLogin() {
+  clear(app);
+  let email = '', password = '', error = null, loading = false;
+
+  function paint() {
+    clear(app);
+    const box = h('div', { class: 'card auth-card' }, [
+      h('h1', {}, 'مساعد التقاضي'),
+      h('p', { class: 'hint' }, 'Litigation Agent — تسجيل الدخول'),
+      error ? h('div', { class: 'alert risk' }, error) : null,
+      h('div', { class: 'field' }, [
+        h('label', {}, 'البريد الإلكتروني'),
+        h('input', { type: 'email', value: email, oninput: (e) => (email = e.target.value) }),
+      ]),
+      h('div', { class: 'field' }, [
+        h('label', {}, 'كلمة المرور'),
+        h('input', { type: 'password', value: password, oninput: (e) => (password = e.target.value) }),
+      ]),
+      h('button', {
+        class: 'btn', disabled: loading ? 'true' : null,
+        onclick: async () => {
+          error = null; loading = true; paint();
+          const { error: signInError } = await sb.auth.signInWithPassword({ email, password });
+          loading = false;
+          if (signInError) { error = signInError.message; paint(); return; }
+          boot();
+        },
+      }, loading ? 'جارٍ الدخول…' : 'دخول'),
+    ]);
+    app.appendChild(h('div', { class: 'center-screen' }, box));
+  }
+  paint();
+}
+
+function renderMfaChallenge(factorId) {
+  clear(app);
+  let code = '', error = null, loading = false;
+  function paint() {
+    clear(app);
+    const box = h('div', { class: 'card auth-card' }, [
+      h('h1', {}, 'التحقق بخطوتين'),
+      h('p', { class: 'hint' }, 'أدخل رمز تطبيق المصادقة (TOTP)'),
+      error ? h('div', { class: 'alert risk' }, error) : null,
+      h('div', { class: 'field' }, [
+        h('label', {}, 'الرمز'),
+        h('input', { class: 'mono', inputmode: 'numeric', maxlength: '6', value: code, oninput: (e) => (code = e.target.value) }),
+      ]),
+      h('button', {
+        class: 'btn', disabled: loading ? 'true' : null,
+        onclick: async () => {
+          error = null; loading = true; paint();
+          try {
+            const { data: ch, error: chErr } = await sb.auth.mfa.challenge({ factorId });
+            if (chErr) throw chErr;
+            const { error: vErr } = await sb.auth.mfa.verify({ factorId, challengeId: ch.id, code });
+            if (vErr) throw vErr;
+            boot();
+          } catch (e) {
+            error = e.message; loading = false; paint();
+          }
+        },
+      }, loading ? 'جارٍ التحقق…' : 'تأكيد'),
+    ]);
+    app.appendChild(h('div', { class: 'center-screen' }, box));
+  }
+  paint();
+}
+
+// ---------- app shell ----------
+function renderShell(route) {
+  clear(app);
+  const sidebar = h('nav', { class: 'sidebar' }, [
+    h('div', { class: 'brand' }, ['مساعد التقاضي', h('span', { class: 'sub' }, 'Litigation Agent · Phase 1–4')]),
+    h('a', { href: '#/matters', class: route.startsWith('#/matters') ? 'active' : '' }, 'القضايا · Matters'),
+    h('a', { href: '#/review', class: route.startsWith('#/review') ? 'active' : '' }, 'مراجعة الاستخراج · Review queue'),
+    h('a', { href: '#/search', class: route.startsWith('#/search') ? 'active' : '' }, 'البحث في الأرشيف · Search'),
+    h('a', { href: '#/templates', class: route.startsWith('#/templates') ? 'active' : '' }, 'القوالب · Templates'),
+    h('a', { href: '#/corpus', class: route.startsWith('#/corpus') ? 'active' : '' }, 'المصادر القانونية · Corpus'),
+    h('a', { href: '#/research', class: route.startsWith('#/research') ? 'active' : '' }, 'بحث قانوني موثّق · Research'),
+    h('div', { class: 'spacer' }),
+    h('a', {
+      href: '#', onclick: async (e) => { e.preventDefault(); await sb.auth.signOut(); boot(); },
+    }, 'تسجيل الخروج'),
+  ]);
+  const content = h('main', { class: 'content', id: 'content' });
+  app.appendChild(h('div', { class: 'shell' }, [sidebar, content]));
+  return content;
+}
+
+// ---------- matters list ----------
+async function renderMattersList(content) {
+  clear(content);
+  content.appendChild(h('div', { class: 'row-between' }, [
+    h('h2', { class: 'section-title' }, 'القضايا'),
+    h('button', { class: 'btn', onclick: () => openNewMatterDialog() }, '+ قضية جديدة'),
+  ]));
+  const listWrap = h('div', {}, h('p', { class: 'empty' }, 'جارٍ التحميل…'));
+  content.appendChild(listWrap);
+
+  const { data, error } = await sb
+    .from('matters')
+    .select('id, matter_label, court, case_number, case_year, stage, status, opened_at')
+    .order('opened_at', { ascending: false });
+
+  clear(listWrap);
+  if (error) { listWrap.appendChild(h('div', { class: 'alert risk' }, `تعذّر تحميل القضايا: ${error.message}`)); return; }
+  if (!data || data.length === 0) {
+    listWrap.appendChild(h('p', { class: 'empty' },
+      'لا توجد قضايا مرئية لك بعد. القضايا لا تظهر تلقائياً لمن أنشأها — يلزم منح صلاحية وصول منفصلة (matter_access) عبر لوحة الإدارة.'));
+    return;
+  }
+  const table = h('table', {}, [
+    h('thead', {}, h('tr', {}, ['القضية', 'المحكمة', 'رقم/سنة', 'المرحلة', 'الحالة'].map((t) => h('th', {}, t)))),
+    h('tbody', {}, data.map((m) => h('tr', {
+      onclick: () => { location.hash = `#/matters/${m.id}`; },
+    }, [
+      h('td', {}, m.matter_label),
+      h('td', {}, m.court || '—'),
+      h('td', { class: 'mono' }, m.case_number ? `${m.case_number}/${m.case_year ?? ''}` : '—'),
+      h('td', {}, STAGE_LABELS[m.stage] || '—'),
+      h('td', {}, h('span', { class: `badge ${m.status}` }, m.status)),
+    ]))),
+  ]);
+  listWrap.appendChild(table);
+}
+
+function openNewMatterDialog() {
+  const dlg = h('dialog', {}, []);
+  document.body.appendChild(dlg);
+  let form = { matter_label: '', court: '', circuit: '', case_number: '', case_year: '', matter_type: '', stage: '', subject: '' };
+  let error = null, loading = false;
+
+  function paint() {
+    clear(dlg);
+    dlg.appendChild(h('div', { class: 'dialog-body' }, [
+      h('h2', {}, 'قضية جديدة'),
+      h('p', { class: 'hint' },
+        'إدخال يدوي — بديل مؤقت لاستيراد الملف الممسوح ضوئياً، الذي لم يُبنَ بعد (Phase 1، أسابيع 2–4).'),
+      error ? h('div', { class: 'alert risk' }, error) : null,
+      h('div', { class: 'field' }, [h('label', {}, 'عنوان القضية *'),
+        h('input', { value: form.matter_label, oninput: (e) => (form.matter_label = e.target.value) })]),
+      h('div', { class: 'grid-2' }, [
+        h('div', { class: 'field' }, [h('label', {}, 'المحكمة'), h('input', { oninput: (e) => (form.court = e.target.value) })]),
+        h('div', { class: 'field' }, [h('label', {}, 'الدائرة'), h('input', { oninput: (e) => (form.circuit = e.target.value) })]),
+        h('div', { class: 'field' }, [h('label', {}, 'رقم القضية'), h('input', { oninput: (e) => (form.case_number = e.target.value) })]),
+        h('div', { class: 'field' }, [h('label', {}, 'السنة'), h('input', { type: 'number', oninput: (e) => (form.case_year = e.target.value) })]),
+      ]),
+      h('div', { class: 'field' }, [
+        h('label', {}, 'المرحلة'),
+        h('select', { onchange: (e) => (form.stage = e.target.value) }, [
+          h('option', { value: '' }, '—'),
+          ...Object.entries(STAGE_LABELS).map(([v, l]) => h('option', { value: v }, l)),
+        ]),
+      ]),
+      h('div', { class: 'field' }, [h('label', {}, 'الموضوع'), h('textarea', { rows: '2', oninput: (e) => (form.subject = e.target.value) })]),
+      h('div', { class: 'row-between' }, [
+        h('button', { class: 'btn secondary', onclick: () => dlg.close() }, 'إلغاء'),
+        h('button', {
+          class: 'btn', disabled: loading ? 'true' : null,
+          onclick: async () => {
+            error = null;
+            if (!form.matter_label.trim()) { error = 'عنوان القضية مطلوب'; paint(); return; }
+            loading = true; paint();
+            try {
+              const payload = { ...form, case_year: form.case_year ? Number(form.case_year) : null };
+              const res = await callFunction('litigation-create-matter', payload);
+              dlg.close(); dlg.remove();
+              location.hash = `#/matters/${res.matter_id}`;
+              route();
+            } catch (e) {
+              error = e.message; loading = false; paint();
+            }
+          },
+        }, loading ? 'جارٍ الحفظ…' : 'إنشاء'),
+      ]),
+    ]));
+  }
+  paint();
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.showModal();
+}
+
+// ---------- matter detail ----------
+async function renderMatterDetail(content, matterId) {
+  clear(content);
+  content.appendChild(h('p', { class: 'empty' }, 'جارٍ التحميل…'));
+
+  const [matterRes, partiesRes, hearingsRes, deadlinesRes, docsRes, activeRulesRes] = await Promise.all([
+    sb.from('matters').select('*').eq('id', matterId).maybeSingle(),
+    sb.from('matter_parties').select('*').eq('matter_id', matterId),
+    sb.from('hearings').select('*').eq('matter_id', matterId).order('session_date', { ascending: false }),
+    sb.from('deadlines').select('*').eq('matter_id', matterId).order('computed_due_date', { ascending: true }),
+    sb.from('documents').select('id, original_filename, ocr_status, created_at, storage_path').eq('matter_id', matterId),
+    sb.from('deadline_rules').select('id, rule_key, title_ar, title_en').eq('status', 'active'),
+  ]);
+
+  clear(content);
+  if (matterRes.error || !matterRes.data) {
+    content.appendChild(h('div', { class: 'alert risk' },
+      'تعذّر الوصول لهذه القضية — إما غير موجودة أو لا تملك صلاحية وصول (matter_access) لها.'));
+    return;
+  }
+  const m = matterRes.data;
+
+  content.appendChild(h('div', { class: 'stack' }, [
+    h('div', {}, [
+      h('a', { href: '#/matters' }, '← كل القضايا'),
+      h('h2', { class: 'section-title', style: 'margin-top:8px' }, m.matter_label),
+      h('p', { class: 'hint' }, [
+        m.court || '—', ' · ', m.case_number ? `${m.case_number}/${m.case_year ?? ''}` : '—',
+        ' · ', STAGE_LABELS[m.stage] || '—', ' · ', h('span', { class: `badge ${m.status}` }, m.status),
+      ]),
+    ]),
+
+    h('div', { class: 'card' }, [
+      h('h3', {}, 'الأطراف · Parties'),
+      partiesRes.data && partiesRes.data.length
+        ? h('table', {}, [
+            h('thead', {}, h('tr', {}, ['الاسم', 'الصفة', 'الرقم التعريفي'].map((t) => h('th', {}, t)))),
+            h('tbody', {}, partiesRes.data.map((p) => h('tr', {}, [
+              h('td', {}, p.name), h('td', {}, PARTY_ROLE_LABELS[p.party_role] || p.party_role), h('td', { class: 'mono' }, p.identifier || '—'),
+            ]))),
+          ])
+        : h('p', { class: 'empty' }, 'لا يوجد أطراف مسجّلون بعد.'),
+    ]),
+
+    h('div', { class: 'card' }, [
+      h('div', { class: 'row-between' }, [
+        h('h3', {}, 'الجلسات · Hearings'),
+        h('button', { class: 'btn small', onclick: () => openHearingDialog(matterId, () => renderMatterDetail(content, matterId)) }, '+ إضافة جلسة'),
+      ]),
+      hearingsRes.data && hearingsRes.data.length
+        ? h('table', {}, [
+            h('thead', {}, h('tr', {}, ['التاريخ', 'النتيجة', 'الجلسة القادمة'].map((t) => h('th', {}, t)))),
+            h('tbody', {}, hearingsRes.data.map((s) => h('tr', {}, [
+              h('td', {}, fmtDate(s.session_date)), h('td', {}, s.outcome || '—'), h('td', {}, fmtDate(s.next_session_date)),
+            ]))),
+          ])
+        : h('p', { class: 'empty' }, 'لا توجد جلسات مسجّلة بعد.'),
+    ]),
+
+    h('div', { class: 'card' }, [
+      h('div', { class: 'row-between' }, [
+        h('h3', {}, 'المواعيد · Deadlines'),
+        activeRulesRes.data && activeRulesRes.data.length
+          ? h('button', { class: 'btn small', onclick: () => openProposeDeadlineDialog(matterId, activeRulesRes.data, () => renderMatterDetail(content, matterId)) }, '+ اقتراح موعد')
+          : null,
+      ]),
+      !activeRulesRes.data || activeRulesRes.data.length === 0
+        ? h('div', { class: 'alert warn' },
+            'لا توجد قواعد مواعيد معتمدة بعد (جدول deadline_rules فارغ — بوابة Phase 0 في خطة البناء). لا يمكن اقتراح أي موعد قبل أن يوقّع المحامي على قاعدة واحدة على الأقل.')
+        : null,
+      deadlinesRes.data && deadlinesRes.data.length
+        ? h('table', {}, [
+            h('thead', {}, h('tr', {}, ['المستحق', 'الحدث المحرِّك', 'الحالة', ''].map((t) => h('th', {}, t)))),
+            h('tbody', {}, deadlinesRes.data.map((d) => h('tr', {}, [
+              h('td', {}, fmtDate(d.computed_due_date)), h('td', {}, d.trigger_event),
+              h('td', {}, h('span', { class: `badge ${d.status === 'confirmed' ? 'active' : 'pending'}` }, d.status)),
+              h('td', {}, d.status === 'provisional'
+                ? h('button', { class: 'btn small secondary', onclick: async (e) => { e.target.disabled = true; try { await callFunction('litigation-confirm-deadline', { deadline_id: d.id }); renderMatterDetail(content, matterId); } catch (err) { alert(err.message); e.target.disabled = false; } } }, 'تأكيد')
+                : null),
+            ]))),
+          ])
+        : h('p', { class: 'empty' }, 'لا توجد مواعيد بعد لهذه القضية.'),
+    ]),
+
+    h('div', { class: 'card' }, [
+      h('div', { class: 'row-between' }, [
+        h('h3', {}, 'المستندات · Documents'),
+        h('button', { class: 'btn small', onclick: () => openUploadDialog(matterId, () => renderMatterDetail(content, matterId)) }, '+ رفع مستند'),
+      ]),
+      h('p', { class: 'hint', style: 'margin:8px 0' }, 'PDF أو صورة فقط. يُرسل الملف إلى Gemini للاستخراج (legal-extract) فور اكتمال الرفع.'),
+      docsRes.data && docsRes.data.length
+        ? h('table', {}, [
+            h('thead', {}, h('tr', {}, ['الملف', 'حالة المعالجة', 'تاريخ الرفع'].map((t) => h('th', {}, t)))),
+            h('tbody', {}, docsRes.data.map((d) => h('tr', {
+              onclick: () => openDocumentViewer(d, matterId),
+            }, [
+              h('td', {}, d.original_filename || '—'),
+              h('td', {}, h('span', { class: `badge ${d.ocr_status === 'done' ? 'active' : d.ocr_status === 'failed' ? '' : 'pending'}` }, d.ocr_status)),
+              h('td', {}, fmtDate(d.created_at)),
+            ]))),
+          ])
+        : h('p', { class: 'empty' }, 'لا توجد مستندات بعد.'),
+    ]),
+
+    renderDraftsCard(matterId),
+    renderChronologyCard(matterId),
+  ]));
+}
+
+// ---------- drafts ----------
+function renderDraftsCard(matterId) {
+  let drafts = null, error = null;
+  const card = h('div', { class: 'card' }, []);
+
+  async function load() {
+    error = null; paint();
+    const { data, error: err } = await sb
+      .from('drafts')
+      .select('id, doc_type, version, status, storage_path, created_at')
+      .eq('matter_id', matterId)
+      .order('created_at', { ascending: false });
+    if (err) { error = err.message; paint(); return; }
+    drafts = data; paint();
+  }
+
+  function paint() {
+    clear(card);
+    card.appendChild(h('div', { class: 'row-between' }, [
+      h('h3', {}, 'المسودات · Drafts'),
+      h('button', { class: 'btn small', onclick: () => openGenerateDraftDialog(matterId, load) }, '+ إنشاء مسودة'),
+    ]));
+    card.appendChild(h('div', { class: 'alert warn', style: 'margin:8px 0' },
+      'لا توجد مصادر قانونية محمّلة بعد (المصادر فارغة — Phase 4) — لن تحتوي أي مسودة على استشهادات قانونية حقيقية؛ سيظهر بدلاً منها العبارة "[يحتاج استشهاد قانوني]" أينما لزم الأمر.'));
+    if (error) card.appendChild(h('div', { class: 'alert risk' }, error));
+    if (drafts === null) { card.appendChild(h('p', { class: 'empty' }, 'جارٍ التحميل…')); return; }
+    if (drafts.length === 0) { card.appendChild(h('p', { class: 'empty' }, 'لا توجد مسودات بعد.')); return; }
+    card.appendChild(h('table', {}, [
+      h('thead', {}, h('tr', {}, ['النوع', 'النسخة', 'الحالة', 'التاريخ', ''].map((t) => h('th', {}, t)))),
+      h('tbody', {}, drafts.map((d) => h('tr', {}, [
+        h('td', {}, d.doc_type), h('td', { class: 'mono' }, d.version),
+        h('td', {}, h('span', { class: `badge ${d.status === 'exported' ? 'active' : 'pending'}` }, d.status)),
+        h('td', {}, fmtDate(d.created_at)),
+        h('td', {}, h('button', {
+          class: 'btn small secondary',
+          onclick: async (e) => {
+            e.target.disabled = true; e.target.textContent = 'جارٍ التصدير…';
+            try {
+              const res = await callFunction('litigation-export-draft', { draft_id: d.id });
+              window.open(res.url, '_blank');
+              load();
+            } catch (err) {
+              alert(err.message); e.target.disabled = false; e.target.textContent = 'تصدير Word';
+            }
+          },
+        }, 'تصدير Word')),
+      ]))),
+    ]));
+  }
+  paint();
+  load();
+  return card;
+}
+
+function openGenerateDraftDialog(matterId, onDone) {
+  const dlg = h('dialog', {}, []);
+  document.body.appendChild(dlg);
+  let form = { doc_type: '', template_id: '', instructions: '' };
+  let templates = [], error = null, loading = false, status = null;
+
+  async function init() {
+    const { data } = await sb.from('templates').select('id, title, doc_type').eq('active', true);
+    templates = data || [];
+    paint();
+  }
+
+  function paint() {
+    clear(dlg);
+    dlg.appendChild(h('div', { class: 'dialog-body' }, [
+      h('h2', {}, 'إنشاء مسودة'),
+      error ? h('div', { class: 'alert risk' }, error) : null,
+      status ? h('div', { class: 'alert seal' }, status) : null,
+      h('div', { class: 'field' }, [h('label', {}, 'نوع المستند *'),
+        h('input', { placeholder: 'مثال: صحيفة دعوى', oninput: (e) => (form.doc_type = e.target.value) })]),
+      h('div', { class: 'field' }, [
+        h('label', {}, 'القالب (اختياري)'),
+        h('select', { onchange: (e) => (form.template_id = e.target.value) }, [
+          h('option', { value: '' }, '— بدون قالب —'),
+          ...templates.map((t) => h('option', { value: t.id }, `${t.title} (${t.doc_type})`)),
+        ]),
+      ]),
+      h('div', { class: 'field' }, [h('label', {}, 'تعليمات إضافية'), h('textarea', { rows: '3', oninput: (e) => (form.instructions = e.target.value) })]),
+      h('div', { class: 'row-between' }, [
+        h('button', { class: 'btn secondary', onclick: () => dlg.close() }, 'إلغاء'),
+        h('button', {
+          class: 'btn', disabled: loading ? 'true' : null,
+          onclick: async () => {
+            error = null;
+            if (!form.doc_type.trim()) { error = 'نوع المستند مطلوب'; paint(); return; }
+            loading = true; status = 'جارٍ التوليد (Gemini)…'; paint();
+            try {
+              await callFunction('litigation-draft', {
+                matter_id: matterId, doc_type: form.doc_type,
+                template_id: form.template_id || undefined, instructions: form.instructions || undefined,
+              });
+              dlg.close(); dlg.remove(); onDone();
+            } catch (e) {
+              error = e.message; loading = false; status = null; paint();
+            }
+          },
+        }, status || 'توليد'),
+      ]),
+    ]));
+  }
+  paint();
+  init();
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.showModal();
+}
+
+// ---------- templates ----------
+async function renderTemplatesPage(content) {
+  clear(content);
+  content.appendChild(h('div', { class: 'row-between' }, [
+    h('h2', { class: 'section-title' }, 'القوالب · Templates'),
+    h('button', { class: 'btn', onclick: () => openCreateTemplateDialog(() => renderTemplatesPage(content)) }, '+ قالب جديد'),
+  ]));
+  const wrap = h('div', {}, h('p', { class: 'empty' }, 'جارٍ التحميل…'));
+  content.appendChild(wrap);
+
+  const { data, error } = await sb.from('templates').select('*').order('created_at', { ascending: false });
+  clear(wrap);
+  if (error) { wrap.appendChild(h('div', { class: 'alert risk' }, `تعذّر التحميل: ${error.message}`)); return; }
+  if (!data || data.length === 0) { wrap.appendChild(h('p', { class: 'empty' }, 'لا توجد قوالب بعد.')); return; }
+  wrap.appendChild(h('div', { class: 'stack' }, data.map((t) => h('div', { class: 'card' }, [
+    h('div', { class: 'row-between' }, [
+      h('div', {}, [h('strong', {}, t.title), h('span', { class: 'hint' }, ` — ${t.doc_type}`)]),
+      h('span', { class: `badge ${t.active ? 'active' : 'closed'}` }, t.active ? 'مفعّل' : 'معطّل'),
+    ]),
+    h('pre', { style: 'white-space:pre-wrap; margin-top:8px; max-height:160px; overflow:auto; font-size:13px' }, t.content_text),
+  ]))));
+}
+
+function openCreateTemplateDialog(onDone) {
+  const dlg = h('dialog', {}, []);
+  document.body.appendChild(dlg);
+  let form = { title: '', doc_type: '', content_text: '' };
+  let error = null, loading = false;
+
+  function paint() {
+    clear(dlg);
+    dlg.appendChild(h('div', { class: 'dialog-body' }, [
+      h('h2', {}, 'قالب جديد'),
+      h('p', { class: 'hint' }, 'نص عادي فقط — لا يوجد رفع/استخراج ملفات Word حتى الآن.'),
+      error ? h('div', { class: 'alert risk' }, error) : null,
+      h('div', { class: 'field' }, [h('label', {}, 'العنوان *'), h('input', { oninput: (e) => (form.title = e.target.value) })]),
+      h('div', { class: 'field' }, [h('label', {}, 'النوع *'), h('input', { placeholder: 'مثال: صحيفة دعوى', oninput: (e) => (form.doc_type = e.target.value) })]),
+      h('div', { class: 'field' }, [h('label', {}, 'المحتوى *'), h('textarea', { rows: '10', class: 'mono', oninput: (e) => (form.content_text = e.target.value) })]),
+      h('div', { class: 'row-between' }, [
+        h('button', { class: 'btn secondary', onclick: () => dlg.close() }, 'إلغاء'),
+        h('button', {
+          class: 'btn', disabled: loading ? 'true' : null,
+          onclick: async () => {
+            error = null;
+            if (!form.title.trim() || !form.doc_type.trim() || !form.content_text.trim()) { error = 'كل الحقول مطلوبة'; paint(); return; }
+            loading = true; paint();
+            try {
+              await callFunction('litigation-manage-template', { action: 'create', ...form });
+              dlg.close(); dlg.remove(); onDone();
+            } catch (e) {
+              error = e.message; loading = false; paint();
+            }
+          },
+        }, loading ? 'جارٍ الحفظ…' : 'حفظ'),
+      ]),
+    ]));
+  }
+  paint();
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.showModal();
+}
+
+// ---------- hearings ----------
+function openHearingDialog(matterId, onDone) {
+  const dlg = h('dialog', {}, []);
+  document.body.appendChild(dlg);
+  const OUTCOMES = { adjourned: 'تأجيل', reserved_for_judgment: 'حجز للحكم', judgment_issued: 'صدور الحكم', other: 'أخرى' };
+  let form = { session_date: '', session_time: '', outcome: '', adjournment_reason: '', next_session_date: '' };
+  let error = null, loading = false;
+
+  function paint() {
+    clear(dlg);
+    dlg.appendChild(h('div', { class: 'dialog-body' }, [
+      h('h2', {}, 'إضافة جلسة'),
+      error ? h('div', { class: 'alert risk' }, error) : null,
+      h('div', { class: 'grid-2' }, [
+        h('div', { class: 'field' }, [h('label', {}, 'تاريخ الجلسة *'), h('input', { type: 'date', oninput: (e) => (form.session_date = e.target.value) })]),
+        h('div', { class: 'field' }, [h('label', {}, 'الوقت'), h('input', { type: 'time', oninput: (e) => (form.session_time = e.target.value) })]),
+      ]),
+      h('div', { class: 'field' }, [
+        h('label', {}, 'النتيجة'),
+        h('select', { onchange: (e) => (form.outcome = e.target.value) }, [
+          h('option', { value: '' }, '—'),
+          ...Object.entries(OUTCOMES).map(([v, l]) => h('option', { value: v }, l)),
+        ]),
+      ]),
+      h('div', { class: 'field' }, [h('label', {}, 'سبب التأجيل'), h('textarea', { rows: '2', oninput: (e) => (form.adjournment_reason = e.target.value) })]),
+      h('div', { class: 'field' }, [h('label', {}, 'الجلسة القادمة'), h('input', { type: 'date', oninput: (e) => (form.next_session_date = e.target.value) })]),
+      h('div', { class: 'row-between' }, [
+        h('button', { class: 'btn secondary', onclick: () => dlg.close() }, 'إلغاء'),
+        h('button', {
+          class: 'btn', disabled: loading ? 'true' : null,
+          onclick: async () => {
+            error = null;
+            if (!form.session_date) { error = 'تاريخ الجلسة مطلوب'; paint(); return; }
+            loading = true; paint();
+            try {
+              const payload = { matter_id: matterId, ...form };
+              for (const k of Object.keys(payload)) if (payload[k] === '') payload[k] = null;
+              await callFunction('litigation-record-hearing', payload);
+              dlg.close(); dlg.remove(); onDone();
+            } catch (e) {
+              error = e.message; loading = false; paint();
+            }
+          },
+        }, loading ? 'جارٍ الحفظ…' : 'حفظ'),
+      ]),
+    ]));
+  }
+  paint();
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.showModal();
+}
+
+// ---------- deadlines ----------
+function openProposeDeadlineDialog(matterId, rules, onDone) {
+  const dlg = h('dialog', {}, []);
+  document.body.appendChild(dlg);
+  let form = { rule_id: rules[0]?.id || '', trigger_event: '', trigger_date: '' };
+  let error = null, loading = false;
+
+  function paint() {
+    clear(dlg);
+    dlg.appendChild(h('div', { class: 'dialog-body' }, [
+      h('h2', {}, 'اقتراح موعد'),
+      h('p', { class: 'hint' }, 'يُحسب التاريخ آلياً عبر fn_compute_deadline ويبقى "قيد الانتظار" حتى يؤكده محامٍ.'),
+      error ? h('div', { class: 'alert risk' }, error) : null,
+      h('div', { class: 'field' }, [
+        h('label', {}, 'القاعدة'),
+        h('select', { onchange: (e) => (form.rule_id = e.target.value) },
+          rules.map((r) => h('option', { value: r.id }, `${r.title_ar || r.rule_key} — ${r.title_en || ''}`))),
+      ]),
+      h('div', { class: 'field' }, [h('label', {}, 'الحدث المحرِّك *'), h('input', { oninput: (e) => (form.trigger_event = e.target.value) })]),
+      h('div', { class: 'field' }, [h('label', {}, 'تاريخ الحدث *'), h('input', { type: 'date', oninput: (e) => (form.trigger_date = e.target.value) })]),
+      h('div', { class: 'row-between' }, [
+        h('button', { class: 'btn secondary', onclick: () => dlg.close() }, 'إلغاء'),
+        h('button', {
+          class: 'btn', disabled: loading ? 'true' : null,
+          onclick: async () => {
+            error = null;
+            if (!form.trigger_event.trim() || !form.trigger_date) { error = 'الحدث المحرِّك والتاريخ مطلوبان'; paint(); return; }
+            loading = true; paint();
+            try {
+              await callFunction('litigation-propose-deadline', { matter_id: matterId, ...form });
+              dlg.close(); dlg.remove(); onDone();
+            } catch (e) {
+              error = e.message; loading = false; paint();
+            }
+          },
+        }, loading ? 'جارٍ الحساب…' : 'اقتراح'),
+      ]),
+    ]));
+  }
+  paint();
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.showModal();
+}
+
+// ---------- chronology ----------
+function renderChronologyCard(matterId) {
+  let events = null, error = null, loading = false, truncated = false;
+  const card = h('div', { class: 'card' }, []);
+
+  function paint() {
+    clear(card);
+    card.appendChild(h('div', { class: 'row-between' }, [
+      h('h3', {}, 'التسلسل الزمني · Chronology'),
+      h('button', { class: 'btn small', disabled: loading ? 'true' : null, onclick: generate }, loading ? 'جارٍ التوليد…' : 'توليد'),
+    ]));
+    card.appendChild(h('p', { class: 'hint', style: 'margin:8px 0' },
+      'يُبنى عند الطلب من نصوص المستندات المستخرجة بالفعل (Gemini) — لا يُحفظ، وكل حدث يشير إلى المستند والصفحة المصدر.'));
+    if (error) card.appendChild(h('div', { class: 'alert risk' }, error));
+    if (truncated) card.appendChild(h('div', { class: 'alert warn' }, 'تم اقتطاع بعض النص لتجاوز الحد الأقصى — النتيجة قد تكون غير كاملة.'));
+    if (events) {
+      card.appendChild(events.length
+        ? h('table', {}, [
+            h('thead', {}, h('tr', {}, ['التاريخ', 'الحدث', 'المصدر'].map((t) => h('th', {}, t)))),
+            h('tbody', {}, events.map((ev) => h('tr', {}, [
+              h('td', {}, ev.date || '—'), h('td', {}, ev.description),
+              h('td', { class: 'hint' }, `ص. ${ev.source_page_number}`),
+            ]))),
+          ])
+        : h('p', { class: 'empty' }, 'لا توجد أحداث مستخرجة.'));
+    }
+  }
+
+  async function generate() {
+    error = null; loading = true; paint();
+    try {
+      const res = await callFunction('litigation-chronology', { matter_id: matterId });
+      events = res.events; truncated = !!res.truncated; loading = false; paint();
+    } catch (e) {
+      error = e.message; loading = false; paint();
+    }
+  }
+  paint();
+  return card;
+}
+
+// ---------- archive search ----------
+function renderSearchPage(content) {
+  clear(content);
+  let query = '', results = null, error = null, loading = false, note = null;
+
+  function paint() {
+    clear(content);
+    content.appendChild(h('h2', { class: 'section-title' }, 'البحث في الأرشيف'));
+    content.appendChild(h('p', { class: 'hint', style: 'margin-bottom:14px' },
+      'بحث نصي عربي (full-text) عبر كل المستندات المصرَّح لك بالوصول إليها. البحث الدلالي (embeddings) غير مفعّل بعد.'));
+    content.appendChild(h('div', { class: 'row-between' }, [
+      h('input', {
+        style: 'flex:1; padding:9px 12px; border:1px solid var(--rule-2); border-radius:5px',
+        placeholder: 'مثال: بطلان إعلان', value: query,
+        oninput: (e) => (query = e.target.value),
+        onkeydown: (e) => { if (e.key === 'Enter') search(); },
+      }),
+      h('button', { class: 'btn', disabled: loading ? 'true' : null, onclick: search }, loading ? 'جارٍ البحث…' : 'بحث'),
+    ]));
+    if (error) content.appendChild(h('div', { class: 'alert risk', style: 'margin-top:12px' }, error));
+    if (note) content.appendChild(h('div', { class: 'alert warn', style: 'margin-top:12px' }, note));
+    if (results) {
+      content.appendChild(h('div', { class: 'stack', style: 'margin-top:14px' },
+        results.length
+          ? results.map((r) => h('div', { class: 'card' }, [
+              h('div', { class: 'row-between' }, [
+                h('span', {}, r.document_name || r.document_id), h('span', { class: 'hint' }, r.page_number ? `ص. ${r.page_number}` : ''),
+              ]),
+              h('p', { style: 'margin-top:6px' }, r.excerpt),
+            ]))
+          : h('p', { class: 'empty' }, 'لا نتائج.')));
+    }
+  }
+
+  async function search() {
+    if (!query.trim()) return;
+    error = null; loading = true; paint();
+    try {
+      const res = await callFunction('litigation-search-archive', { query });
+      results = res.results; note = res.note; loading = false; paint();
+    } catch (e) {
+      error = e.message; loading = false; paint();
+    }
+  }
+  paint();
+}
+
+// ---------- document upload ----------
+function openUploadDialog(matterId, onDone) {
+  const dlg = h('dialog', {}, []);
+  document.body.appendChild(dlg);
+  let file = null, error = null, status = null;
+
+  function paint() {
+    clear(dlg);
+    dlg.appendChild(h('div', { class: 'dialog-body' }, [
+      h('h2', {}, 'رفع مستند'),
+      error ? h('div', { class: 'alert risk' }, error) : null,
+      status ? h('div', { class: 'alert seal' }, status) : null,
+      h('div', { class: 'field' }, [
+        h('label', {}, 'الملف (PDF أو صورة)'),
+        h('input', {
+          type: 'file', accept: 'application/pdf,image/*',
+          onchange: (e) => { file = e.target.files[0] || null; },
+        }),
+      ]),
+      h('div', { class: 'row-between' }, [
+        h('button', { class: 'btn secondary', onclick: () => dlg.close() }, 'إلغاء'),
+        h('button', {
+          class: 'btn', disabled: status ? 'true' : null,
+          onclick: async () => {
+            error = null;
+            if (!file) { error = 'اختر ملفاً أولاً'; paint(); return; }
+            try {
+              status = 'جارٍ الرفع…'; paint();
+              const ing = await callFunction('legal-ingest', {
+                matter_id: matterId, original_filename: file.name, mime_type: file.type,
+              });
+              const { error: upErr } = await sb.storage
+                .from('matter-documents')
+                .uploadToSignedUrl(ing.storage_path, ing.token, file);
+              if (upErr) throw upErr;
+
+              status = 'جارٍ الاستخراج (Claude)…'; paint();
+              await callFunction('legal-extract', { document_id: ing.document_id, job_id: ing.job_id });
+
+              status = 'تم.'; paint();
+              dlg.close(); dlg.remove();
+              onDone();
+            } catch (e) {
+              error = e.message; status = null; paint();
+            }
+          },
+        }, status || 'رفع'),
+      ]),
+    ]));
+  }
+  paint();
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.showModal();
+}
+
+function openDocumentViewer(doc, matterId) {
+  const dlg = h('dialog', { style: 'max-width:640px' }, []);
+  document.body.appendChild(dlg);
+  dlg.appendChild(h('div', { class: 'dialog-body' }, h('p', { class: 'empty' }, 'جارٍ التحميل…')));
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.showModal();
+
+  (async () => {
+    const [{ data: pages }, signRes] = await Promise.all([
+      sb.from('document_pages').select('page_number, text_content').eq('document_id', doc.id).order('page_number'),
+      callFunction('sign-document-url', { matter_id: matterId, bucket: 'matter-documents', storage_path: doc.storage_path || '' }).catch((e) => ({ error: e.message })),
+    ]);
+    clear(dlg);
+    dlg.appendChild(h('div', { class: 'dialog-body' }, [
+      h('h2', {}, doc.original_filename || 'مستند'),
+      h('span', { class: `badge ${doc.ocr_status === 'done' ? 'active' : doc.ocr_status === 'failed' ? '' : 'pending'}` }, doc.ocr_status),
+      signRes && signRes.url
+        ? h('a', { href: signRes.url, target: '_blank', rel: 'noopener' }, 'فتح الملف الأصلي (رابط صالح 5 دقائق)')
+        : h('p', { class: 'hint' }, 'تعذّر إنشاء رابط للملف الأصلي.'),
+      h('div', { style: 'max-height:320px; overflow:auto; border-top:1px solid var(--rule); padding-top:12px' },
+        pages && pages.length
+          ? pages.map((p) => h('div', { style: 'margin-bottom:12px' }, [
+              h('p', { class: 'hint' }, `صفحة ${p.page_number}`),
+              h('p', {}, p.text_content),
+            ]))
+          : h('p', { class: 'empty' }, 'لا يوجد نص مستخرج بعد.')),
+    ]));
+  })();
+}
+
+// ---------- review queue ----------
+async function renderReviewQueue(content) {
+  clear(content);
+  content.appendChild(h('h2', { class: 'section-title' }, 'مراجعة الاستخراج'));
+  content.appendChild(h('p', { class: 'hint', style: 'margin-bottom:14px' },
+    'كل حقل هنا كانت ثقة النموذج فيه أقل من 0.85 — لم يُطبَّق تلقائياً على القضية. تأكيد أو تصحيح أو رفض كل حقل.'));
+  const wrap = h('div', {}, h('p', { class: 'empty' }, 'جارٍ التحميل…'));
+  content.appendChild(wrap);
+
+  const { data, error } = await sb
+    .from('extractions')
+    .select('id, matter_id, document_id, field_key, field_value, confidence, created_at, matters(matter_label)')
+    .eq('review_status', 'pending')
+    .order('created_at', { ascending: true });
+
+  clear(wrap);
+  if (error) { wrap.appendChild(h('div', { class: 'alert risk' }, `تعذّر التحميل: ${error.message}`)); return; }
+  if (!data || data.length === 0) { wrap.appendChild(h('p', { class: 'empty' }, 'لا يوجد شيء بانتظار المراجعة.')); return; }
+
+  for (const ex of data) {
+    wrap.appendChild(renderReviewRow(ex, () => renderReviewQueue(content)));
+  }
+}
+
+function renderReviewRow(ex, onDone) {
+  let corrected = ex.field_value || '', error = null, submitting = false;
+  const row = h('div', { class: 'card', style: 'margin-bottom:12px' }, []);
+
+  function paint() {
+    clear(row);
+    row.appendChild(h('div', { class: 'stack' }, [
+      h('div', { class: 'row-between' }, [
+        h('div', {}, [
+          h('span', { class: 'mono' }, ex.field_key), ' — ',
+          h('span', { class: 'hint' }, ex.matters ? ex.matters.matter_label : ex.matter_id),
+        ]),
+        h('span', { class: 'badge pending' }, `ثقة ${Math.round(ex.confidence * 100)}%`),
+      ]),
+      error ? h('div', { class: 'alert risk' }, error) : null,
+      h('div', { class: 'field' }, [
+        h('label', {}, 'القيمة المستخرجة (قابلة للتعديل)'),
+        h('input', { value: corrected, oninput: (e) => (corrected = e.target.value) }),
+      ]),
+      h('div', { class: 'row-between' }, [
+        h('button', {
+          class: 'btn small danger', disabled: submitting ? 'true' : null,
+          onclick: () => act('reject'),
+        }, 'رفض'),
+        h('div', { style: 'display:flex; gap:8px' }, [
+          h('button', {
+            class: 'btn small secondary', disabled: submitting ? 'true' : null,
+            onclick: () => act(corrected === ex.field_value ? 'confirm' : 'correct'),
+          }, corrected === ex.field_value ? 'تأكيد' : 'تصحيح وحفظ'),
+        ]),
+      ]),
+    ]));
+  }
+
+  async function act(action) {
+    error = null; submitting = true; paint();
+    try {
+      await callFunction('litigation-review-extraction', {
+        extraction_id: ex.id, action, corrected_value: action === 'correct' ? corrected : undefined,
+      });
+      onDone();
+    } catch (e) {
+      error = e.message; submitting = false; paint();
+    }
+  }
+  paint();
+  return row;
+}
+
+// ---------- legal corpus (Phase 4 infrastructure — deliberately empty) ----------
+async function renderCorpusPage(content) {
+  clear(content);
+  content.appendChild(h('div', { class: 'row-between' }, [
+    h('h2', { class: 'section-title' }, 'المصادر القانونية · Corpus'),
+    h('button', { class: 'btn', onclick: () => openAddAuthorityDialog(() => renderCorpusPage(content)) }, '+ إضافة مصدر'),
+  ]));
+  content.appendChild(h('div', { class: 'alert warn', style: 'margin-bottom:14px' },
+    'HONEST GAP — لا يوجد نص قانوني حقيقي محمَّل في هذا النظام. لا يوجد مصدر عام موثوق لتشريعات ومبادئ النقض المصرية يمكن استيراده تلقائياً؛ يجب ترخيصه أو تجميعه يدوياً (Phase 4 من خطة البناء). هذه الصفحة بنية تحتية فقط — لن يتم اختلاق أي نص قانوني.'));
+  const wrap = h('div', {}, h('p', { class: 'empty' }, 'جارٍ التحميل…'));
+  content.appendChild(wrap);
+
+  const { data, error } = await sb.from('authorities').select('id, title, authority_type, citation, effective_date, created_at').order('created_at', { ascending: false });
+  clear(wrap);
+  if (error) { wrap.appendChild(h('div', { class: 'alert risk' }, `تعذّر التحميل: ${error.message}`)); return; }
+  if (!data || data.length === 0) { wrap.appendChild(h('p', { class: 'empty' }, 'لا توجد مصادر بعد.')); return; }
+  wrap.appendChild(h('table', {}, [
+    h('thead', {}, h('tr', {}, ['العنوان', 'النوع', 'الاستشهاد', 'التاريخ'].map((t) => h('th', {}, t)))),
+    h('tbody', {}, data.map((a) => h('tr', {}, [
+      h('td', {}, a.title), h('td', {}, a.authority_type), h('td', { class: 'mono' }, a.citation), h('td', {}, fmtDate(a.effective_date)),
+    ]))),
+  ]));
+}
+
+function openAddAuthorityDialog(onDone) {
+  const dlg = h('dialog', {}, []);
+  document.body.appendChild(dlg);
+  const TYPES = { statute: 'تشريع', cassation_principle: 'مبدأ نقض', regulation: 'لائحة' };
+  let form = { title: '', authority_type: 'statute', citation: '', source_url: '', effective_date: '', chunk_text: '', chunk_ref: '' };
+  let error = null, loading = false;
+
+  function paint() {
+    clear(dlg);
+    dlg.appendChild(h('div', { class: 'dialog-body' }, [
+      h('h2', {}, 'إضافة مصدر قانوني'),
+      h('p', { class: 'hint' }, 'إدخال يدوي فقط. النص يجب أن يكون نصاً قانونياً حقيقياً موثّقاً.'),
+      error ? h('div', { class: 'alert risk' }, error) : null,
+      h('div', { class: 'field' }, [h('label', {}, 'العنوان *'), h('input', { oninput: (e) => (form.title = e.target.value) })]),
+      h('div', { class: 'grid-2' }, [
+        h('div', { class: 'field' }, [
+          h('label', {}, 'النوع'),
+          h('select', { onchange: (e) => (form.authority_type = e.target.value) }, Object.entries(TYPES).map(([v, l]) => h('option', { value: v }, l))),
+        ]),
+        h('div', { class: 'field' }, [h('label', {}, 'تاريخ النفاذ'), h('input', { type: 'date', oninput: (e) => (form.effective_date = e.target.value) })]),
+      ]),
+      h('div', { class: 'field' }, [h('label', {}, 'الاستشهاد *'), h('input', { placeholder: 'مثال: قانون المرافعات، م. 123', oninput: (e) => (form.citation = e.target.value) })]),
+      h('div', { class: 'field' }, [h('label', {}, 'رابط المصدر'), h('input', { oninput: (e) => (form.source_url = e.target.value) })]),
+      h('div', { class: 'field' }, [h('label', {}, 'النص *'), h('textarea', { rows: '8', oninput: (e) => (form.chunk_text = e.target.value) })]),
+      h('div', { class: 'field' }, [h('label', {}, 'إشارة الفقرة/المادة'), h('input', { oninput: (e) => (form.chunk_ref = e.target.value) })]),
+      h('div', { class: 'row-between' }, [
+        h('button', { class: 'btn secondary', onclick: () => dlg.close() }, 'إلغاء'),
+        h('button', {
+          class: 'btn', disabled: loading ? 'true' : null,
+          onclick: async () => {
+            error = null;
+            if (!form.title.trim() || !form.citation.trim() || !form.chunk_text.trim()) { error = 'العنوان والاستشهاد والنص مطلوبة'; paint(); return; }
+            loading = true; paint();
+            try {
+              const { chunk_text, chunk_ref, ...rest } = form;
+              await callFunction('litigation-manage-authority', { ...rest, chunks: [{ chunk_text, chunk_ref: chunk_ref || undefined }] });
+              dlg.close(); dlg.remove(); onDone();
+            } catch (e) {
+              error = e.message; loading = false; paint();
+            }
+          },
+        }, loading ? 'جارٍ الحفظ…' : 'حفظ'),
+      ]),
+    ]));
+  }
+  paint();
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.showModal();
+}
+
+// ---------- grounded research ----------
+function renderResearchPage(content) {
+  clear(content);
+  let query = '', result = null, error = null, loading = false;
+
+  function paint() {
+    clear(content);
+    content.appendChild(h('h2', { class: 'section-title' }, 'بحث قانوني موثّق'));
+    content.appendChild(h('p', { class: 'hint', style: 'margin-bottom:14px' },
+      'يُجيب فقط من مقاطع مسترجعة فعلياً من المصادر القانونية أعلاه. إن لم توجد نتائج، يُعلن ذلك صراحة بدلاً من الإجابة من ذاكرة النموذج.'));
+    content.appendChild(h('div', { class: 'row-between' }, [
+      h('input', {
+        style: 'flex:1; padding:9px 12px; border:1px solid var(--rule-2); border-radius:5px',
+        placeholder: 'اكتب سؤالاً قانونياً…', value: query,
+        oninput: (e) => (query = e.target.value),
+        onkeydown: (e) => { if (e.key === 'Enter') search(); },
+      }),
+      h('button', { class: 'btn', disabled: loading ? 'true' : null, onclick: search }, loading ? 'جارٍ البحث…' : 'بحث'),
+    ]));
+    if (error) content.appendChild(h('div', { class: 'alert risk', style: 'margin-top:12px' }, error));
+    if (result) {
+      if (result.note) content.appendChild(h('div', { class: 'alert warn', style: 'margin-top:12px' }, result.note));
+      if (result.answer) {
+        content.appendChild(h('div', { class: 'card', style: 'margin-top:12px' }, [
+          h('p', { style: 'white-space:pre-wrap' }, result.answer),
+          h('div', { class: 'hint', style: 'margin-top:10px' }, `المصادر: ${(result.matches || []).map((m) => `${m.title} (${m.citation})`).join('، ')}`),
+        ]));
+      }
+    }
+  }
+
+  async function search() {
+    if (!query.trim()) return;
+    error = null; loading = true; paint();
+    try {
+      result = await callFunction('litigation-research', { query });
+      loading = false; paint();
+    } catch (e) {
+      error = e.message; loading = false; paint();
+    }
+  }
+  paint();
+}
+
+// ---------- router ----------
+function route() {
+  const content = document.getElementById('content') || renderShell(location.hash);
+  const hash = location.hash || '#/matters';
+  document.querySelectorAll('nav.sidebar a').forEach((a) => a.classList.toggle('active', hash.startsWith(a.getAttribute('href'))));
+  const matterMatch = hash.match(/^#\/matters\/([0-9a-f-]+)/i);
+  if (hash.startsWith('#/review')) renderReviewQueue(content);
+  else if (hash.startsWith('#/search')) renderSearchPage(content);
+  else if (hash.startsWith('#/templates')) renderTemplatesPage(content);
+  else if (hash.startsWith('#/corpus')) renderCorpusPage(content);
+  else if (hash.startsWith('#/research')) renderResearchPage(content);
+  else if (matterMatch) renderMatterDetail(content, matterMatch[1]);
+  else renderMattersList(content);
+}
+window.addEventListener('hashchange', route);
+
+// ---------- boot / auth gate ----------
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { renderLogin(); return; }
+
+  const { data: aal } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal && aal.nextLevel === 'aal2' && aal.currentLevel !== 'aal2') {
+    const { data: factors } = await sb.auth.mfa.listFactors();
+    const verified = (factors?.totp || []).find((f) => f.status === 'verified');
+    if (verified) { renderMfaChallenge(verified.id); return; }
+    // No enrolled factor but the account requires aal2 — this scaffold
+    // doesn't implement TOTP enrollment (QR code, etc.); the back-office
+    // portal already has that flow. Send people there rather than
+    // half-building a second one here.
+    clear(app);
+    app.appendChild(h('div', { class: 'center-screen' }, h('div', { class: 'card auth-card' }, [
+      h('div', { class: 'alert warn' }, 'يتطلب هذا النظام التحقق بخطوتين (MFA) ولا يوجد جهاز مسجّل بعد.'),
+      h('p', {}, 'سجّل جهاز المصادقة عبر لوحة الإدارة (back-office portal) أولاً، ثم عد لتسجيل الدخول هنا.'),
+      h('button', { class: 'btn secondary', onclick: async () => { await sb.auth.signOut(); boot(); } }, 'خروج'),
+    ])));
+    return;
+  }
+
+  renderShell(location.hash);
+  route();
+}
+
+sb.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') renderLogin();
+});
+
+boot();
+</script>
+</body>
+</html>
